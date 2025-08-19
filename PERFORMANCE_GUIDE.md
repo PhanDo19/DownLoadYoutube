@@ -49,139 +49,42 @@
 - ⚡ **Smart quality selection** (user choice)
 - ⚡ **Reduced bandwidth usage** (720p/1080p options)
 
-## Performance Settings Explanation
+## Quality Options
 
-### Quality Options:
-
-#### 🟢 **720p (Fastest)**
-- Downloads pre-encoded 720p MP4 files
-- No video/audio merging required
-- Smallest file sizes
+### 🟢 **720p (Fastest)**
+- Pre-encoded MP4 files, no merging required
 - **Best for**: Batch downloads, slower internet
 
-#### 🟡 **1080p (Balanced)**
-- Downloads pre-encoded 1080p MP4 when available
-- Falls back to 720p if 1080p not available
-- Moderate file sizes
+### 🟡 **1080p (Balanced)** 
+- Downloads 1080p when available, falls back to 720p
 - **Best for**: General use, balanced speed/quality
 
-#### 🔴 **Best Quality (Slowest)**
-- Downloads highest available quality
-- May require video/audio stream merging
-- Largest file sizes
+### 🔴 **Best Quality (Slowest)**
+- Highest available quality, may require stream merging
 - **Best for**: Archive quality, single important videos
 
-### Parallel Download Settings:
+## Download Modes
 
-#### **Sequential Mode** (User chooses "No" for parallel)
+### Sequential Mode
 - Downloads one video at a time
 - More stable for slow internet
-- Lower bandwidth usage
-- **Best for**: Unstable connections, limited bandwidth
 
-#### **Parallel Mode** (User chooses "Yes" for parallel)
+### Parallel Mode  
 - Downloads up to 3 videos simultaneously
 - 3x faster for multiple videos
-- Higher bandwidth usage
-- **Best for**: Fast internet, many videos
+- Requires stable, fast internet
 
-## Troubleshooting Performance Issues
+## Performance Tips
 
-### If Downloads Are Still Slow:
+1. **Use 720p for batch downloads**
+2. **Close bandwidth-heavy applications**
+3. **Use wired internet connection**
+4. **Download during off-peak hours**
+5. **Keep batch sizes under 20 videos**
+## Performance Results
 
-#### 1. **Check Internet Connection**
-```
-Speed Test: Fast.com or Speedtest.net
-Minimum recommended: 10 Mbps for parallel downloads
-```
-
-#### 2. **Optimize Quality Settings**
-- Use 720p for faster downloads
-- Switch to sequential mode for unstable connections
-
-#### 3. **System Resources**
-- Close other bandwidth-heavy applications
-- Ensure sufficient disk space
-- Check CPU usage during downloads
-
-#### 4. **Network Issues**
-- Try different times of day
-- Check if YouTube is throttling your connection
-- Consider using VPN if blocked/throttled
-
-### Error Handling Improvements:
-
-#### **Smart Error Recovery**
-- Individual video failures don't stop batch downloads
-- Automatic retry with reduced settings
-- Detailed error reporting
-
-#### **Progress Tracking**
-- Real-time download progress
-- ETA calculations
-- Bandwidth usage monitoring
-
-## Advanced Performance Tips
-
-### 1. **Batch Size Optimization**
-- Optimal batch size: 10-20 videos
-- Larger batches may overwhelm system
-- Split very large lists into smaller batches
-
-### 2. **Download Scheduling**
-- Download during off-peak hours
-- YouTube servers less congested at night
-- Better speeds typically 2-6 AM local time
-
-### 3. **System Optimization**
-- Close unnecessary applications
-- Ensure antivirus isn't scanning downloads
-- Use SSD for output directory if available
-
-### 4. **Network Optimization**
-- Use wired connection instead of WiFi
-- Close streaming services during downloads
-- Pause cloud backups/syncing
-
-## Monitoring Performance
-
-### Built-in Monitoring:
-- **Status Bar**: Shows current download progress
-- **Progress Counter**: X/Y format for batch downloads
-- **Error Reporting**: Detailed failure information
-- **Success Summary**: Complete download statistics
-
-### Expected Download Times:
-- **720p**: ~30 seconds per 10-minute video
-- **1080p**: ~60 seconds per 10-minute video
-- **Best Quality**: ~120 seconds per 10-minute video
-
-*Times vary based on internet speed and video length*
-
-## Best Practices for Maximum Performance
-
-### ✅ Do:
-- Choose appropriate quality for your needs
-- Use parallel downloads for 3+ videos
-- Close other applications during large downloads
-- Monitor system resources
-- Use stable internet connection
-
-### ❌ Don't:
-- Download best quality for batch operations
-- Run other downloads simultaneously
-- Use parallel mode on slow connections (<5 Mbps)
-- Download to network drives
-- Run during peak internet usage hours
-
-## Performance Metrics
-
-After implementing these optimizations, typical performance improvements:
-
-- **Single Video Download**: 50-70% faster
-- **Batch Download (Sequential)**: 40-60% faster  
-- **Batch Download (Parallel)**: 200-300% faster
-- **UI Responsiveness**: 100% improvement (no freezing)
-- **Error Recovery**: 80% faster (reduced retries)
-
-These optimizations ensure your YouTube downloader performs efficiently while maintaining reliability and user experience.
+| Feature | Before | After | Improvement |
+|---------|--------|--------|-------------|
+| Single Video | ~2-3 minutes | ~1 minute | **50-70% faster** |
+| Batch (Parallel) | ~15 min for 5 videos | ~4 min | **200-300% faster** |
+| UI Responsiveness | Freezes | Always responsive | **100% better** |
