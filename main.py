@@ -55,53 +55,14 @@ def get_video_urls(url):
     except Exception as e:
         raise RuntimeError("Không lấy được danh sách video: " + str(e))
 
-def get_optimized_format(quality_choice):
-    """Get optimized format string based on quality choice"""
-    if quality_choice == "720p":
-        return 'best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best'
-    elif quality_choice == "1080p":
-        return 'best[height<=1080][ext=mp4]/best[height<=1080]/best[ext=mp4]/best'
-    else:  # best
-        return 'best[ext=mp4]/bestvideo+bestaudio/best'
-
 def download_single_video_threaded(url, video_index, total_videos):
     """Download a single video with optimized settings"""
     try:
         quality_choice = quality_var.get()
-        format_selector = get_optimized_format(quality_choice)
+        platform = get_platform_type(url)
+        format_selector = get_optimized_format_for_platform(quality_choice, platform)
         
-        ydl_opts = {
-            # Optimized format selection based on user choice
-            'format': format_selector,
-            'outtmpl': os.path.join(OUTPUT_DIR, '%(title)s.%(ext)s'),
-            'ffmpeg_location': FFMPEG_DIR,
-            
-            # Performance optimizations
-            'concurrent_fragments': 4,  # Moderate concurrency to avoid overwhelming
-            'retries': 2,  # Reduce retries for faster failure handling
-            'fragment_retries': 2,
-            'skip_unavailable_fragments': False,
-            
-            # Network optimizations
-            'http_chunk_size': 2097152,  # 2MB chunks for better download speed
-            'buffersize': 1048576,  # 1MB buffer
-            
-            # Skip unnecessary operations for speed
-            'writesubtitles': False,
-            'writeautomaticsub': False,
-            'writedescription': False,
-            'writethumbnail': False,
-            'writeinfojson': False,
-            
-            # Faster extraction
-            'extract_flat': False,
-            'lazy_playlist': True,
-            'ignoreerrors': True,  # Continue on errors
-            
-            # Suppress verbose output for better performance
-            'quiet': True,
-            'no_warnings': True,
-        }
+        ydl_opts = get_platform_specific_options(platform, format_selector)
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
@@ -125,38 +86,12 @@ def download_single_video_threaded(url, video_index, total_videos):
 def download_best_video(url):
     try:
         quality_choice = quality_var.get()
-        format_selector = get_optimized_format(quality_choice)
+        platform = get_platform_type(url)
+        format_selector = get_optimized_format_for_platform(quality_choice, platform)
         
-        ydl_opts = {
-            # Optimized format selection for better performance
-            'format': format_selector,
-            'outtmpl': os.path.join(OUTPUT_DIR, '%(title)s.%(ext)s'),
-            'ffmpeg_location': FFMPEG_DIR,
-            
-            # Performance optimizations
-            'concurrent_fragments': 6,  # Download fragments concurrently
-            'retries': 2,  # Reduce retries for faster failure handling
-            'fragment_retries': 2,
-            'skip_unavailable_fragments': False,
-            
-            # Network optimizations
-            'http_chunk_size': 2097152,  # 2MB chunks for better download speed
-            'buffersize': 1048576,  # 1MB buffer
-            
-            # Skip unnecessary operations for speed
-            'writesubtitles': False,
-            'writeautomaticsub': False,
-            'writedescription': False,
-            'writethumbnail': False,
-            'writeinfojson': False,
-            
-            # Faster extraction
-            'extract_flat': False,
-            'lazy_playlist': True,
-            
-            # Progress hook for better UI feedback
-            'progress_hooks': [progress_hook],
-        }
+        ydl_opts = get_platform_specific_options(platform, format_selector)
+        # Add progress hook for UI feedback
+        ydl_opts['progress_hooks'] = [progress_hook]
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
@@ -172,27 +107,102 @@ def is_valid_youtube_url(url):
     youtube_domains = ['youtube.com', 'youtu.be', 'www.youtube.com', 'm.youtube.com']
     return any(domain in url.lower() for domain in youtube_domains)
 
+def is_valid_douyin_url(url):
+    """Check if URL is a valid Douyin/TikTok URL"""
+    douyin_domains = ['douyin.com', 'tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com', 'www.douyin.com', 'www.tiktok.com']
+    return any(domain in url.lower() for domain in douyin_domains)
+
+def get_platform_type(url):
+    """Determine the platform type from URL"""
+    if is_valid_youtube_url(url):
+        return 'youtube'
+    elif is_valid_douyin_url(url):
+        return 'douyin'
+    else:
+        return 'unknown'
+
+def is_valid_url(url):
+    """Check if URL is valid for any supported platform"""
+    return is_valid_youtube_url(url) or is_valid_douyin_url(url)
+
+def get_platform_specific_options(platform, format_selector):
+    """Get platform-specific yt-dlp options"""
+    base_opts = {
+        'format': format_selector,
+        'outtmpl': os.path.join(OUTPUT_DIR, '%(title)s.%(ext)s'),
+        'retries': 2,
+        'fragment_retries': 2,
+        'skip_unavailable_fragments': False,
+        'http_chunk_size': 2097152,
+        'buffersize': 1048576,
+        'writesubtitles': False,
+        'writeautomaticsub': False,
+        'writedescription': False,
+        'writethumbnail': False,
+        'writeinfojson': False,
+        'extract_flat': False,
+        'lazy_playlist': True,
+        'ignoreerrors': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
+    if platform == 'youtube':
+        base_opts.update({
+            'ffmpeg_location': FFMPEG_DIR,
+            'concurrent_fragments': 4,
+        })
+    elif platform == 'douyin':
+        base_opts.update({
+            'concurrent_fragments': 2,  # More conservative for Douyin
+            # Add User-Agent for better compatibility with Douyin/TikTok
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        })
+    
+    return base_opts
+
+def get_optimized_format_for_platform(quality_choice, platform):
+    """Get optimized format string based on quality choice and platform"""
+    if platform == 'douyin':
+        # Douyin/TikTok specific formats
+        if quality_choice == "720p":
+            return 'best[height<=720]/best'
+        elif quality_choice == "1080p":
+            return 'best[height<=1080]/best'
+        else:  # best
+            return 'best'
+    else:  # YouTube
+        if quality_choice == "720p":
+            return 'best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best'
+        elif quality_choice == "1080p":
+            return 'best[height<=1080][ext=mp4]/best[height<=1080]/best[ext=mp4]/best'
+        else:  # best
+            return 'best[ext=mp4]/bestvideo+bestaudio/best'
+
 def download_from_url_list():
     urls_text = url_list_entry.get("1.0", tk.END).strip()
     if not urls_text:
-        messagebox.showerror("Lỗi", "Vui lòng nhập danh sách URL")
+        messagebox.showerror("Error", "Please enter URL list")
         return
 
     # Parse URLs from text area
     all_urls = [url.strip() for url in urls_text.split('\n') if url.strip()]
     if not all_urls:
-        messagebox.showerror("Lỗi", "Không tìm thấy URL hợp lệ")
+        messagebox.showerror("Error", "No valid URLs found")
         return
 
-    # Validate YouTube URLs
-    valid_urls = [url for url in all_urls if is_valid_youtube_url(url)]
-    invalid_urls = [url for url in all_urls if not is_valid_youtube_url(url)]
+    # Validate supported platform URLs (YouTube and Douyin/TikTok)
+    valid_urls = [url for url in all_urls if is_valid_url(url)]
+    invalid_urls = [url for url in all_urls if not is_valid_url(url)]
     
     if invalid_urls:
         invalid_count = len(invalid_urls)
-        if messagebox.askyesno("URL không hợp lệ", 
-                              f"Tìm thấy {invalid_count} URL không phải YouTube.\n"
-                              f"Bạn có muốn tiếp tục với {len(valid_urls)} URL hợp lệ?"):
+        if messagebox.askyesno("Invalid URLs", 
+                              f"Found {invalid_count} non-supported URLs.\n"
+                              f"Continue with {len(valid_urls)} valid URLs?\n\n"
+                              f"Supported platforms: YouTube, Douyin/TikTok"):
             urls = valid_urls
         else:
             return
@@ -200,7 +210,7 @@ def download_from_url_list():
         urls = valid_urls
 
     if not urls:
-        messagebox.showerror("Lỗi", "Không có URL YouTube hợp lệ")
+        messagebox.showerror("Error", "No valid URLs for supported platforms")
         return
 
     # Filter out already downloaded URLs
@@ -293,7 +303,7 @@ def download_from_url_list():
 def start_download():
     url = url_entry.get().strip()
     if not url:
-        messagebox.showerror("Lỗi", "Vui lòng nhập link YouTube")
+        messagebox.showerror("Error", "Please enter a video link")
         return
 
     # Disable UI during download
@@ -357,17 +367,17 @@ def clear_url_list():
     url_list_entry.delete("1.0", tk.END)
 
 def load_sample_urls():
-    sample_urls = """https://youtu.be/vA47xcdzQAA
-https://youtu.be/mc7I8h7Ahao
-https://youtu.be/4MRou53tYFk
-https://youtu.be/Uu8l1c0pzmY
-https://youtu.be/fH8nq7sFDbs"""
+    sample_urls = """https://youtu.be/dQw4w9WgXcQ
+https://www.tiktok.com/@username/video/1234567890
+https://v.douyin.com/example
+https://youtu.be/9bZkp7q19f0
+https://vm.tiktok.com/example"""
     url_list_entry.delete("1.0", tk.END)
     url_list_entry.insert("1.0", sample_urls)
 
-# GUI đơn giản
+# Main GUI
 root = tk.Tk()
-root.title("YouTube Best Quality Downloader")
+root.title("Multi-Platform Video Downloader - YouTube, Douyin, TikTok")
 root.geometry("640x480")
 
 # Create notebook for tabs
@@ -375,66 +385,67 @@ main_frame = tk.Frame(root)
 main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
 # Add quality selection frame
-quality_frame = tk.LabelFrame(main_frame, text="Tùy chọn chất lượng (ảnh hưởng tốc độ tải)", font=("Arial", 10, "bold"))
+quality_frame = tk.LabelFrame(main_frame, text="Quality Options (affects download speed)", font=("Arial", 10, "bold"))
 quality_frame.pack(fill=tk.X, pady=(0, 10))
 
 quality_var = tk.StringVar(value="720p")
 quality_options = [
-    ("720p (Nhanh nhất)", "720p"),
-    ("1080p (Cân bằng)", "1080p"),
-    ("Tốt nhất (Chậm nhất)", "best")
+    ("720p (Fastest)", "720p"),
+    ("1080p (Balanced)", "1080p"),
+    ("Best Quality (Slowest)", "best")
 ]
 
-tk.Label(quality_frame, text="Chọn chất lượng video:").pack(side=tk.LEFT, padx=5)
+tk.Label(quality_frame, text="Select video quality:").pack(side=tk.LEFT, padx=5)
 for text, value in quality_options:
     tk.Radiobutton(quality_frame, text=text, variable=quality_var, value=value).pack(side=tk.LEFT, padx=5)
 
 # Single URL tab
-single_frame = tk.LabelFrame(main_frame, text="Tải video đơn lẻ", font=("Arial", 10, "bold"))
+single_frame = tk.LabelFrame(main_frame, text="Single Video Download", font=("Arial", 10, "bold"))
 single_frame.pack(fill=tk.X, pady=(0, 10))
 
-tk.Label(single_frame, text="Nhập link video hoặc danh sách phát:").pack(pady=5)
+tk.Label(single_frame, text="Enter YouTube, Douyin, or TikTok video/playlist link:").pack(pady=5)
 url_entry = tk.Entry(single_frame, width=70)
 url_entry.pack(pady=5)
 
-btn_download = tk.Button(single_frame, text="Tải video chất lượng tốt nhất", command=start_download)
+btn_download = tk.Button(single_frame, text="Download Best Quality Video", command=start_download)
 btn_download.pack(pady=10)
 
 # Multiple URLs tab
-multi_frame = tk.LabelFrame(main_frame, text="Tải nhiều video từ danh sách URL", font=("Arial", 10, "bold"))
+multi_frame = tk.LabelFrame(main_frame, text="Batch Download from URL List", font=("Arial", 10, "bold"))
 multi_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-tk.Label(multi_frame, text="Nhập danh sách URL (mỗi URL một dòng):").pack(pady=5)
+tk.Label(multi_frame, text="Enter URLs (one per line) - Supports YouTube, Douyin, TikTok:").pack(pady=5)
 url_list_entry = scrolledtext.ScrolledText(multi_frame, width=70, height=8)
 url_list_entry.pack(pady=5, fill=tk.BOTH, expand=True)
 
 # Add placeholder text
 placeholder_text = """https://youtu.be/example1
-https://youtu.be/example2
-https://youtu.be/example3"""
+https://www.tiktok.com/@user/video/123456
+https://v.douyin.com/example3"""
 url_list_entry.insert("1.0", placeholder_text)
 
 # Button frame for URL list controls
 url_list_btn_frame = tk.Frame(multi_frame)
 url_list_btn_frame.pack(pady=5)
 
-btn_download_list = tk.Button(url_list_btn_frame, text="Tải tất cả video", command=download_from_url_list, bg="green", fg="white")
+btn_download_list = tk.Button(url_list_btn_frame, text="Download All Videos", command=download_from_url_list, bg="green", fg="white")
 btn_download_list.pack(side=tk.LEFT, padx=5)
 
-btn_clear_list = tk.Button(url_list_btn_frame, text="Xóa danh sách", command=clear_url_list)
+btn_clear_list = tk.Button(url_list_btn_frame, text="Clear List", command=clear_url_list)
 btn_clear_list.pack(side=tk.LEFT, padx=5)
 
-btn_sample_urls = tk.Button(url_list_btn_frame, text="Tải URL mẫu", command=load_sample_urls)
+btn_sample_urls = tk.Button(url_list_btn_frame, text="Load Sample URLs", command=load_sample_urls)
 btn_sample_urls.pack(side=tk.LEFT, padx=5)
 
 # History and status
 control_frame = tk.Frame(main_frame)
 control_frame.pack(fill=tk.X)
 
-btn_history = tk.Button(control_frame, text="Xem lịch sử đã tải", command=view_download_history)
+btn_history = tk.Button(control_frame, text="View Download History", command=view_download_history)
 btn_history.pack(side=tk.LEFT)
 
 status_label = tk.Label(main_frame, text="", fg="blue")
 status_label.pack(pady=5)
 
-root.mainloop()
+if __name__ == "__main__":
+    root.mainloop()

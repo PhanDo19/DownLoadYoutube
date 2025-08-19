@@ -1,14 +1,19 @@
-# YouTube Video Downloader - Batch Download Feature
+# Multi-Platform Video Downloader - Batch Download Feature
 
 ## Overview
-This YouTube video downloader now supports downloading multiple videos from a list of URLs, in addition to single video downloads.
+This video downloader now supports downloading multiple videos from YouTube, TikTok, and Douyin platforms, in addition to single video downloads.
 
 ## New Features
 
-### 1. Batch Download from URL List
-- Download multiple YouTube videos at once
+### 1. Multi-Platform Support
+- Download from YouTube, TikTok, and Douyin
+- Automatic platform detection and optimization
+- Platform-specific download settings
+
+### 2. Batch Download from URL List
+- Download multiple videos at once from different platforms
 - Simply paste a list of URLs (one per line) in the text area
-- Automatic validation of YouTube URLs
+- Automatic validation of supported platform URLs
 - Progress tracking for each video
 - Error handling for individual failed downloads
 
@@ -22,15 +27,15 @@ This YouTube video downloader now supports downloading multiple videos from a li
 
 ### Step 1: Open the Application
 Run the application and you'll see two sections:
-- "Single Video Download" (Single Video Download)
-- "Batch Download from URL List" (Batch Download from URL List)
+- "Single Video Download" (Individual video downloads)
+- "Batch Download from URL List" (Multiple video downloads)
 
 ### Step 2: Prepare Your URL List
-In the batch download section, paste your YouTube URLs in the text area. Format:
+In the batch download section, paste your video URLs in the text area. Format:
 ```
 https://youtu.be/VIDEO_ID1
-https://youtu.be/VIDEO_ID2
-https://www.youtube.com/watch?v=VIDEO_ID3
+https://www.tiktok.com/@user/video/VIDEO_ID2
+https://v.douyin.com/VIDEO_ID3
 https://youtube.com/watch?v=VIDEO_ID4
 ```
 
@@ -64,10 +69,19 @@ After completion, you'll see a summary:
 - MP4 output format
 
 ## Supported URL Formats
+**YouTube:**
 - `https://youtu.be/VIDEO_ID`
 - `https://www.youtube.com/watch?v=VIDEO_ID`
 - `https://youtube.com/watch?v=VIDEO_ID`
 
+**TikTok:**
+- `https://tiktok.com/@user/video/VIDEO_ID`
+- `https://vm.tiktok.com/SHORT_ID`
+
+**Douyin:**
+- `https://douyin.com/video/VIDEO_ID`
+- `https://v.douyin.com/SHORT_ID`
+
 ## Requirements
 - Python with yt-dlp library
-- FFmpeg for video processing
+- FFmpeg for YouTube video processing (not required for TikTok/Douyin)

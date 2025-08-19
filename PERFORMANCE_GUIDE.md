@@ -1,16 +1,22 @@
-# YouTube Downloader - Performance Optimization Guide
+# Multi-Platform Video Downloader - Performance Optimization Guide
 
 ## Performance Improvements Made
 
 ### 🚀 Key Optimizations
 
-#### 1. **Smart Format Selection**
+#### 1. **Platform-Specific Optimization**
+- **YouTube**: High-quality downloads with FFmpeg merging
+- **TikTok/Douyin**: Direct downloads (faster, no merging needed)
+- **Smart Detection**: Automatic platform recognition and optimization
+
+#### 2. **Smart Format Selection**
 - **720p Mode**: Downloads 720p videos directly (fastest)
 - **1080p Mode**: Downloads 1080p videos with fallback (balanced)
 - **Best Mode**: Downloads highest quality available (slowest)
 
-#### 2. **Parallel Downloads for Batch Processing**
+#### 3. **Parallel Downloads for Batch Processing**
 - **Concurrent Downloads**: Up to 3 videos download simultaneously
+- **Mixed Platforms**: Can download from different platforms in parallel
 - **Thread Pool**: Efficient resource management
 - **Background Processing**: UI remains responsive during downloads
 
@@ -52,16 +58,31 @@
 ## Quality Options
 
 ### 🟢 **720p (Fastest)**
-- Pre-encoded MP4 files, no merging required
+- **YouTube**: Pre-encoded MP4 files, no merging required
+- **TikTok/Douyin**: Best available quality (usually 720p+)
 - **Best for**: Batch downloads, slower internet
 
 ### 🟡 **1080p (Balanced)** 
-- Downloads 1080p when available, falls back to 720p
+- **YouTube**: Downloads 1080p when available, falls back to 720p
+- **TikTok/Douyin**: Best available quality (usually 1080p)
 - **Best for**: General use, balanced speed/quality
 
 ### 🔴 **Best Quality (Slowest)**
-- Highest available quality, may require stream merging
+- **YouTube**: Highest available quality, may require stream merging
+- **TikTok/Douyin**: Best available quality from platform
 - **Best for**: Archive quality, single important videos
+
+## Platform Performance
+
+### YouTube
+- Requires FFmpeg for high-quality merging
+- Slower due to audio/video stream combination
+- Best quality options available
+
+### TikTok/Douyin
+- **2-3x faster** than YouTube (no merging required)
+- Direct download from platform servers
+- Quality limited by platform encoding
 
 ## Download Modes
 
