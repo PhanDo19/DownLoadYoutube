@@ -63,18 +63,38 @@ def download_single_video_threaded(url, video_index, total_videos):
         format_selector = get_optimized_format_for_platform(quality_choice, platform)
         
         ydl_opts = get_platform_specific_options(platform, format_selector)
-
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'video')
-            ext = info.get('ext', 'mp4')
-            save_to_history_txt(title, info.get('webpage_url', url))
-            return {
-                'success': True,
-                'filename': f"{title}.{ext}",
-                'url': url,
-                'index': video_index
-            }
+        
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                title = info.get('title', 'video')
+                ext = info.get('ext', 'mp4')
+                save_to_history_txt(title, info.get('webpage_url', url))
+                return {
+                    'success': True,
+                    'filename': f"{title}.{ext}",
+                    'url': url,
+                    'index': video_index
+                }
+        except Exception as e:
+            if "Requested format is not available" in str(e) or "HTTP Error 403" in str(e):
+                # Fallback to simpler format options
+                fallback_format = "best"  # Simplest format
+                ydl_opts['format'] = fallback_format
+                
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    title = info.get('title', 'video')
+                    ext = info.get('ext', 'mp4')
+                    save_to_history_txt(title, info.get('webpage_url', url))
+                    return {
+                        'success': True,
+                        'filename': f"{title}.{ext}",
+                        'url': url,
+                        'index': video_index
+                    }
+            else:
+                raise e
     except Exception as e:
         return {
             'success': False,
@@ -83,22 +103,53 @@ def download_single_video_threaded(url, video_index, total_videos):
             'index': video_index
         }
 
+def check_for_hls_streams(url):
+    """Check if the video uses HLS (m3u8) streams"""
+    try:
+        with YoutubeDL({'quiet': True, 'no_warnings': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+            for fmt in formats:
+                protocol = fmt.get('protocol', '')
+                if 'm3u8' in protocol or 'hls' in protocol:
+                    return True
+        return False
+    except:
+        return False  # Default to False if we can't determine
+
 def download_best_video(url):
     try:
         quality_choice = quality_var.get()
         platform = get_platform_type(url)
+        
+        # First try with optimized format
         format_selector = get_optimized_format_for_platform(quality_choice, platform)
         
         ydl_opts = get_platform_specific_options(platform, format_selector)
         # Add progress hook for UI feedback
         ydl_opts['progress_hooks'] = [progress_hook]
 
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'video')
-            ext = info.get('ext', 'mp4')
-            save_to_history_txt(title, info.get('webpage_url', url))
-            return f"{title}.{ext}"
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                title = info.get('title', 'video')
+                ext = info.get('ext', 'mp4')
+                save_to_history_txt(title, info.get('webpage_url', url))
+                return f"{title}.{ext}"
+        except Exception as e:
+            if "Requested format is not available" in str(e) or "HTTP Error 403" in str(e):
+                # Fallback to simpler format options for problematic videos
+                fallback_format = "best"  # Simplest format
+                ydl_opts['format'] = fallback_format
+                
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    title = info.get('title', 'video')
+                    ext = info.get('ext', 'mp4')
+                    save_to_history_txt(title, info.get('webpage_url', url))
+                    return f"{title}.{ext}"
+            else:
+                raise e
     except Exception as e:
         raise RuntimeError("Lỗi tải video: " + str(e))
 
@@ -130,10 +181,10 @@ def get_platform_specific_options(platform, format_selector):
     base_opts = {
         'format': format_selector,
         'outtmpl': os.path.join(OUTPUT_DIR, '%(title)s.%(ext)s'),
-        'retries': 2,
-        'fragment_retries': 2,
-        'skip_unavailable_fragments': False,
-        'http_chunk_size': 2097152,
+        'retries': 10,  # Increased retries
+        'fragment_retries': 10,  # Increased fragment retries
+        'skip_unavailable_fragments': True,  # Skip unavailable fragments instead of failing
+        'http_chunk_size': 1048576,  # Reduced chunk size for better stability
         'buffersize': 1048576,
         'writesubtitles': False,
         'writeautomaticsub': False,
@@ -145,19 +196,39 @@ def get_platform_specific_options(platform, format_selector):
         'ignoreerrors': True,
         'quiet': True,
         'no_warnings': True,
+        'extractor_retries': 5,  # Increased extractor retries
+        'socket_timeout': 60,  # Increased timeout for slow connections
+        'merge_output_format': 'mp4',  # Force mp4 output format when merging
+        'hls_prefer_native': True,  # Use native HLS implementation
+        'hls_use_mpegts': True,  # Use MPEG-TS for HLS
+        'external_downloader': 'native',  # Use native downloader
+        'downloader': 'native',  # Use native downloader
     }
     
     if platform == 'youtube':
         base_opts.update({
             'ffmpeg_location': FFMPEG_DIR,
-            'concurrent_fragments': 4,
+            'concurrent_fragments': 2,  # Reduced for stability with HLS streams
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Upgrade-Insecure-Requests': '1',
+                'Origin': 'https://www.youtube.com',
+                'Referer': 'https://www.youtube.com/'
+            },
+            'youtube_include_dash_manifest': False,  # Skip DASH manifests
+            'prefer_native_hls': True,  # Prefer native HLS handling
         })
     elif platform == 'douyin':
         base_opts.update({
             'concurrent_fragments': 2,  # More conservative for Douyin
             # Add User-Agent for better compatibility with Douyin/TikTok
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Upgrade-Insecure-Requests': '1'
             }
         })
     
@@ -174,12 +245,16 @@ def get_optimized_format_for_platform(quality_choice, platform):
         else:  # best
             return 'best'
     else:  # YouTube
+        # For HLS m3u8 streams and regular streams
         if quality_choice == "720p":
-            return 'best[height<=720][ext=mp4]/best[height<=720]/best[ext=mp4]/best'
+            # For videos like tLsnDfeAMZU with HLS (m3u8) streams
+            return '230+233/230+234/best[height<=720]/best'
         elif quality_choice == "1080p":
-            return 'best[height<=1080][ext=mp4]/best[height<=1080]/best[ext=mp4]/best'
+            # For videos like tLsnDfeAMZU with HLS (m3u8) streams
+            return '311+233/311+234/best[height<=1080]/best'
         else:  # best
-            return 'best[ext=mp4]/bestvideo+bestaudio/best'
+            # For videos like tLsnDfeAMZU with HLS (m3u8) streams
+            return '312+234/311+234/best'
 
 def download_from_url_list():
     urls_text = url_list_entry.get("1.0", tk.END).strip()
