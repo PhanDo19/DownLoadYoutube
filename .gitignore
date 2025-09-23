@@ -1,33 +1,29 @@
-# Python
+# Python cache
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
-env/
-venv/
-.venv/
-ENV/
 
-# Download directories
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Downloaded files
 downloads/
 output/
-douyin_downloads/
-douyin_videos/
 
-# History files
-history.txt
-history.json
-
-# IDE and editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# OS specific
 .DS_Store
 Thumbs.db
 
+# IDE
+.vscode/
+.idea/
+
 # Logs
 *.log
+
+# Temporary files
+*.tmp

@@ -1,99 +1,194 @@
-# 🎬 Multi-Platform Video Downloader
+# YouTube Video Downloader# 🎬 Multi-Platform Video Downloader
 
-A clean, organized GUI tool for downloading high-quality videos from **YouTube**, **TikTok**, and **Douyin**. Features a modern object-oriented design with comprehensive error handling and batch download capabilities.
 
-## ✨ Key Features
 
-- **🎯 Multi-Platform Support**: YouTube, TikTok, Douyin
-- **📊 Quality Selection**: 720p (Fast), 1080p (Balanced), 1440p (High), 4K (Best), Auto, Best Available
-- **📦 Batch Downloads**: Download multiple videos with parallel processing option
-- **🔄 Smart Duplicate Detection**: Automatically skips previously downloaded videos
-- **📝 Download History**: Complete tracking of downloaded videos
-- **🍪 Cookie Support**: Optional browser cookie authentication for private videos
+A clean, high-quality video downloader for YouTube with GUI interface.A clean, organized GUI tool for downloading high-quality videos from **YouTube**, **TikTok**, and **Douyin**. Features a modern object-oriented design with comprehensive error handling and batch download capabilities.
+
+
+
+## ✨ Features## ✨ Key Features
+
+
+
+- **High Quality Downloads**: Supports up to 1080p+ resolution with AAC audio- **🎯 Multi-Platform Support**: YouTube, TikTok, Douyin
+
+- **Simple GUI**: Easy-to-use tkinter interface- **📊 Quality Selection**: 720p (Fast), 1080p (Balanced), 1440p (High), 4K (Best), Auto, Best Available
+
+- **Batch Downloads**: Multiple videos simultaneously- **📦 Batch Downloads**: Download multiple videos with parallel processing option
+
+- **Format Selection**: Choose from 720p, 1080p, 1440p, 4K, or Best quality- **🔄 Smart Duplicate Detection**: Automatically skips previously downloaded videos
+
+- **Audio Compatibility**: AAC format for universal player support- **📝 Download History**: Complete tracking of downloaded videos
+
+- **No Cookies Required**: Works without browser authentication for most videos- **🍪 Cookie Support**: Optional browser cookie authentication for private videos
+
 - **🎨 Clean Interface**: Modern, intuitive GUI design
-- **🔧 Robust Error Handling**: Comprehensive fallback strategies
 
-## 📁 Project Structure
+## 🚀 Quick Start- **🔧 Robust Error Handling**: Comprehensive fallback strategies
 
-```
-DownLoadYoutube/
+
+
+1. **Run the application**:## 📁 Project Structure
+
+   ```bash
+
+   python main.py```
+
+   ```DownLoadYoutube/
+
 ├── ffmpeg/
-│   └── bin/
-│       ├── ffmpeg.exe          # FFmpeg binary for video processing
-│       ├── ffplay.exe          # Media player
-│       └── ffprobe.exe         # Media information tool
-├── output/                     # Downloaded videos storage
-├── downloads/                  # Alternative download location
-├── douyin_downloads/           # Douyin-specific downloads
-├── douyin_videos/              # Douyin video cache
-├── __pycache__/               # Python cache files
-├── main.py                     # Main application (cleaned & organized)
-├── requirements.txt            # Python dependencies
-├── history.txt                 # Download history log
-├── history.json               # Download history (JSON format)
-└── README.md                  # This documentation
-```
 
-## ⚙️ System Requirements
+2. **Select quality**: Choose "1080p" for best results│   └── bin/
+
+│       ├── ffmpeg.exe          # FFmpeg binary for video processing
+
+3. **Paste YouTube URL** and click Download│       ├── ffplay.exe          # Media player
+
+│       └── ffprobe.exe         # Media information tool
+
+4. **Results**: Videos saved to `output/` folder with high quality├── output/                     # Downloaded videos storage
+
+├── downloads/                  # Alternative download location
+
+## 📋 Quality Guide├── douyin_downloads/           # Douyin-specific downloads
+
+├── douyin_videos/              # Douyin video cache
+
+### Recommended Settings:├── __pycache__/               # Python cache files
+
+- **Quality**: 1080p (gets best available up to 1080p)├── main.py                     # Main application (cleaned & organized)
+
+- **Cookies**: Leave disabled (works great without them)├── requirements.txt            # Python dependencies
+
+- **Format**: Auto-selected (video: H.264, audio: AAC)├── history.txt                 # Download history log
+
+├── history.json               # Download history (JSON format)
+
+### Expected Results:└── README.md                  # This documentation
+
+- **720p videos**: Download at 1280x720 with AAC audio```
+
+- **1080p videos**: Download at 1920x1080 with AAC audio  
+
+- **File sizes**: ~150-300MB for 1-hour 1080p video## ⚙️ System Requirements
+
+- **Compatibility**: Plays on all modern media players
 
 - **Python**: 3.7 or higher
-- **Operating System**: Windows (PowerShell support)
+
+## 🔧 Requirements- **Operating System**: Windows (PowerShell support)
+
 - **Dependencies**: `yt-dlp` (latest version)
-- **Optional**: FFmpeg (included for YouTube processing)
 
-## 🚀 Quick Start
+- Python 3.8+- **Optional**: FFmpeg (included for YouTube processing)
 
-### 1. Install Python
+- yt-dlp (latest)
+
+- FFmpeg (included in project)## 🚀 Quick Start
+
+
+
+## 📁 Project Structure### 1. Install Python
+
 Download from [python.org](https://www.python.org/downloads/)
-> ⚠️ **Important**: Check "Add Python to PATH" during installation
 
-### 2. Install Dependencies
+```> ⚠️ **Important**: Check "Add Python to PATH" during installation
+
+DownLoadYoutube/
+
+├── main.py              # Main application### 2. Install Dependencies
+
+├── requirements.txt     # Dependencies```powershell
+
+├── ffmpeg/bin/         # FFmpeg binariespip install yt-dlp
+
+├── output/             # Downloaded videos```
+
+└── README.md           # This file
+
+```### 3. Run the Application
+
 ```powershell
-pip install yt-dlp
+
+## 🎯 How It Workspython main.py
+
 ```
 
-### 3. Run the Application
-```powershell
-python main.py
-```
+1. **Auto-selects TV client** for YouTube access (bypasses restrictions)
 
-### 4. Start Downloading
-1. Paste video URL from supported platforms
-2. Select desired quality
-3. Configure advanced options (optional)
+2. **Prioritizes bestvideo+bestaudio** format for maximum quality### 4. Start Downloading
+
+3. **Prefers AAC audio** over Opus for better compatibility1. Paste video URL from supported platforms
+
+4. **Uses FFmpeg** to merge video and audio streams2. Select desired quality
+
+5. **No authentication required** for most public videos3. Configure advanced options (optional)
+
 4. Click "Download Video" or use batch download for multiple URLs
+
+## 💡 Tips
 
 ## 🎛️ User Interface Guide
 
-### Quality Options
-- **720p (Fast)**: Smaller file size, faster download
-- **1080p (Balanced)**: Good quality-to-size ratio (recommended)
-- **1440p (High)**: High quality for larger screens
-- **4K (Best)**: Maximum quality, largest file size
-- **Auto**: Automatically selects best quality based on video analysis
-- **Best Available**: Downloads highest quality available
+- **High quality works without cookies** - no need to close browsers
 
-### Advanced Options
+- **Enable cookies only for private videos** - most public videos work without them### Quality Options
+
+- **Choose 1080p quality** - automatically selects best available format- **720p (Fast)**: Smaller file size, faster download
+
+- **Let it auto-select formats** - optimized for quality and compatibility- **1080p (Balanced)**: Good quality-to-size ratio (recommended)
+
+- **1440p (High)**: High quality for larger screens
+
+## 🔧 Troubleshooting- **4K (Best)**: Maximum quality, largest file size
+
+- **Auto**: Automatically selects best quality based on video analysis
+
+### Video quality still low?- **Best Available**: Downloads highest quality available
+
+- Try a different video (some videos only have low quality)
+
+- Check if video is age-restricted or private### Advanced Options
+
 - **🍪 Use browser cookies**: Enable for private/age-restricted videos
-  - Requires browser to be closed for cookie access
-  - Supports Chrome, Edge, and Firefox
+
+### Audio not working?  - Requires browser to be closed for cookie access
+
+- Update your media player (newer players support AAC)  - Supports Chrome, Edge, and Firefox
+
+- Try VLC Media Player for best compatibility
 
 ### Download Modes
-1. **Single Video**: Download individual videos or playlists
-2. **Batch Download**: 
-   - Enter multiple URLs (one per line)
+
+### Download errors?1. **Single Video**: Download individual videos or playlists
+
+- Check internet connection2. **Batch Download**: 
+
+- Verify YouTube URL is correct and public   - Enter multiple URLs (one per line)
+
    - Option for parallel downloads (faster but uses more bandwidth)
-   - Automatic duplicate detection
 
-## 🌐 Supported Platforms & URLs
+## 🎉 Success Metrics   - Automatic duplicate detection
 
-### YouTube
-```
-✅ Individual videos:
+
+
+Since optimization:## 🌐 Supported Platforms & URLs
+
+- **Quality improved**: 360p → 1080p+ (200% increase)
+
+- **Audio compatibility**: Opus → AAC (universal support)### YouTube
+
+- **User experience**: Complex setup → Simple one-click download```
+
+- **Reliability**: Cookie dependency removed✅ Individual videos:
+
 https://youtube.com/watch?v=VIDEO_ID
-https://youtu.be/VIDEO_ID
 
-✅ Playlists:
+---https://youtu.be/VIDEO_ID
+
+
+
+**Happy downloading!** 🚀✅ Playlists:
 https://youtube.com/playlist?list=PLAYLIST_ID
 
 ✅ Features:

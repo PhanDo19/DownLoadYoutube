@@ -114,69 +114,7 @@ class VideoDownloader:
             else:
                 self.current_video_title = filename
 
-    # Browser and Cookie Methods
-    def check_browser_processes(self):
-        """Check if browsers are running that might lock cookie databases"""
-        try:
-            result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq chrome.exe'], 
-                                  capture_output=True, text=True, shell=True)
-            chrome_running = 'chrome.exe' in result.stdout
-            
-            result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq msedge.exe'], 
-                                  capture_output=True, text=True, shell=True)
-            edge_running = 'msedge.exe' in result.stdout
-            
-            return {'chrome': chrome_running, 'edge': edge_running}
-        except:
-            return {'chrome': False, 'edge': False}
-
-    def try_cookie_extraction(self):
-        """Try extracting cookies from different browsers"""
-        # Check if user wants to use cookies
-        if not self.use_cookies_var.get():
-            print("🍪 Cookie authentication disabled by user")
-            return None, None
-        
-        browsers_to_try = [
-            ('chrome', 'Chrome'),
-            ('edge', 'Edge'), 
-            ('firefox', 'Firefox')
-        ]
-        
-        browser_status = self.check_browser_processes()
-        
-        for browser_name, display_name in browsers_to_try:
-            try:
-                # Test cookie extraction with a simple public video
-                test_opts = {
-                    'quiet': True,
-                    'no_warnings': True,
-                    'cookiesfrombrowser': (browser_name,),
-                    'simulate': True,
-                    'extract_flat': False,
-                }
-                
-                test_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                
-                with YoutubeDL(test_opts) as test_ydl:
-                    info = test_ydl.extract_info(test_url, download=False)
-                    if info:
-                        print(f"✅ {display_name} cookies working")
-                        return browser_name, display_name
-                
-            except Exception as e:
-                error_msg = str(e)
-                if "Could not copy" in error_msg:
-                    if browser_name in browser_status and browser_status[browser_name]:
-                        print(f"⚠️ {display_name} is running - cookies locked")
-                    else:
-                        print(f"⚠️ {display_name} cookie database access denied")
-                else:
-                    print(f"❌ {display_name} cookies not available")
-                continue
-        
-        print("⚠️ All cookie extraction attempts failed")
-        return None, None
+    # Format Selection Methods
 
     # Format Selection Methods
     def get_format_for_quality(self, quality_choice, platform):
@@ -184,90 +122,59 @@ class VideoDownloader:
         if platform == 'douyin':
             # Douyin/TikTok specific formats
             quality_map = {
-                "720p": 'best[height<=720][ext=mp4]/best[height<=720]/best',
-                "1080p": 'best[height<=1080][ext=mp4]/best[height<=1080]/best',
-                "1440p": 'best[height<=1440][ext=mp4]/best[height<=1440]/best',
-                "4k": 'best[height<=2160][ext=mp4]/best[height<=2160]/best',
-                "auto": 'best[ext=mp4]/best',
-                "best": 'best[ext=mp4]/best'
+                "720p": 'best[height<=720]/best',
+                "1080p": 'best[height<=1080]/best',
+                "1440p": 'best[height<=1440]/best',
+                "4k": 'best[height<=2160]/best',
+                "auto": 'best',
+                "best": 'best'
             }
-            return quality_map.get(quality_choice, 'best[ext=mp4]/best')
+            return quality_map.get(quality_choice, 'best')
         
-        else:  # YouTube
-            base_formats = []
-            
-            # Quality-specific formats for YouTube
-            if quality_choice == "720p":
-                base_formats.extend([
-                    'bestvideo[height<=720]+bestaudio',
-                    'best[height<=720]'
-                ])
-            elif quality_choice == "1080p":
-                base_formats.extend([
-                    'bestvideo[height<=1080]+bestaudio',
-                    'best[height<=1080]'
-                ])
-            elif quality_choice == "1440p":
-                base_formats.extend([
-                    'bestvideo[height<=1440]+bestaudio',
-                    'best[height<=1440]'
-                ])
-            elif quality_choice in ["4k", "best"]:
-                base_formats.extend([
-                    'bestvideo[height<=2160]+bestaudio',
-                    'best'
-                ])
-            elif quality_choice == "auto":
-                return 'best'
-            
-            # Add fallback
-            base_formats.append('best')
-            return '/'.join(base_formats)
+        else:  # YouTube - Use bestvideo+bestaudio for high quality
+            # Map quality choices to format strings with AAC audio preference
+            youtube_formats = {
+                "720p": 'bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio',
+                "1080p": 'bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]',
+                "1440p": 'bestvideo[height<=1440]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]',
+                "4k": 'bestvideo+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]',
+                "best": 'bestvideo+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]',
+                "auto": 'bestvideo+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]'
+            }
+            return youtube_formats.get(quality_choice, 'bestvideo+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]')
 
     def get_download_options(self, platform, format_selector):
         """Get platform-specific yt-dlp options"""
         base_opts = {
             'format': format_selector,
             'outtmpl': os.path.join(self.output_dir, '%(title)s.%(ext)s'),
-            'retries': 5,
-            'fragment_retries': 5,
-            'skip_unavailable_fragments': True,
+            'retries': 3,
+            'fragment_retries': 3,
             'nocheckcertificate': True,
             'quiet': False,
             'no_warnings': False,
-            'ignoreerrors': True,
             'progress_hooks': [self.progress_hook],
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             },
         }
         
         # Set ffmpeg location if available
         if self.has_ffmpeg:
             base_opts['ffmpeg_location'] = self.ffmpeg_dir
-            base_opts['prefer_ffmpeg'] = True
             base_opts['merge_output_format'] = 'mp4'
+            # Add audio conversion options for better compatibility
+            base_opts['postprocessors'] = [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }]
         
         # Platform-specific settings
         if platform == 'youtube':
-            base_opts.update({
-                'youtube_include_dash_manifest': False,
-                'youtube_skip_dash_manifest': True,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['android', 'tv_embedded', 'web'],
-                        'skip': ['dash', 'hls']
-                    }
-                }
-            })
-            
-            # Add cookies if available
-            browser_name, display_name = self.try_cookie_extraction()
-            if browser_name and display_name:
-                base_opts['cookiesfrombrowser'] = (browser_name,)
-                print(f"✅ Using {display_name} cookies")
-        
+            # No specific client restrictions - let yt-dlp auto-select the best client
+            # This typically uses TV client which gives better quality without authentication
+            pass
+                    
         return base_opts
 
     # Core Download Methods
@@ -277,36 +184,68 @@ class VideoDownloader:
             platform = self.get_platform_type(url)
             quality_choice = self.quality_var.get()
             
+            print(f"🎯 Downloading with quality: {quality_choice}")
+            
             format_selector = self.get_format_for_quality(quality_choice, platform)
             ydl_opts = self.get_download_options(platform, format_selector)
             
-            # Multiple format fallbacks
+            # Enhanced fallback strategy for better quality
             fallback_formats = [
-                format_selector,
-                'best[ext=mp4]/best',
-                'best'
+                format_selector,  # User's choice with bestvideo+bestaudio
+                'best[height>=720]/best[height>=480]/best',  # Prefer higher quality
+                'best'  # Final fallback
             ]
             
             last_error = None
-            for fmt in fallback_formats:
+            for attempt, fmt in enumerate(fallback_formats):
                 try:
                     ydl_opts['format'] = fmt
+                    
                     with YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(url, download=True)
                         title = info.get('title', 'video')
                         ext = info.get('ext', 'mp4')
+                        
+                        # Show what we actually got
+                        height = info.get('height', 'unknown')
+                        width = info.get('width', 'unknown')
+                        
+                        # For combined formats, check requested_formats
+                        requested_formats = info.get('requested_formats', [])
+                        if requested_formats:
+                            for rf in requested_formats:
+                                if rf.get('vcodec') != 'none':
+                                    height = rf.get('height', height)
+                                    width = rf.get('width', width)
+                                    break
+                        
+                        if height != 'unknown' and width != 'unknown':
+                            print(f"✅ Successfully downloaded: {width}x{height}")
+                            if height >= 720:
+                                print("🎉 Great! High quality video downloaded!")
+                            elif height >= 480:
+                                print("👍 Good quality video downloaded!")
+                            else:
+                                print("⚠️ Lower quality, but this may be the best available for this video")
+                        else:
+                            print(f"✅ Successfully downloaded: {title}")
+                        
                         self.save_to_history(title, info.get('webpage_url', url))
                         return f"{title}.{ext}"
                         
                 except Exception as e:
                     last_error = str(e)
-                    if fmt != fallback_formats[-1]:  # Not the last format
+                    error_str = str(e)
+                    print(f"❌ Format failed: {error_str[:100]}...")
+                    
+                    if attempt < len(fallback_formats) - 1:
+                        print("🔄 Trying next format...")
                         time.sleep(1)
                         continue
                     else:
                         break
             
-            raise RuntimeError(f"All format attempts failed. Last error: {last_error}")
+            raise RuntimeError(f"All formats failed. Last error: {last_error}")
             
         except Exception as e:
             raise RuntimeError(f"Download failed: {str(e)}")
@@ -568,10 +507,6 @@ https://youtu.be/9bZkp7q19f0"""
         options_frame = tk.LabelFrame(parent, text="Advanced Options", font=("Arial", 9))
         options_frame.pack(fill=tk.X, pady=(0, 10))
 
-        self.use_cookies_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(options_frame, text="🍪 Use browser cookies (for private videos)", 
-                      variable=self.use_cookies_var, fg="blue").pack(side=tk.LEFT, padx=5)
-
     def create_single_download_frame(self, parent):
         """Create single video download frame"""
         single_frame = tk.LabelFrame(parent, text="Single Video Download", font=("Arial", 10, "bold"))
@@ -618,6 +553,12 @@ https://youtu.be/9bZkp7q19f0"""
 
         self.status_label = tk.Label(parent, text="Ready to download", fg="blue")
         self.status_label.pack(pady=5)
+        
+        # Add quality tips
+        tips_label = tk.Label(parent, 
+                            text="💡 Tips: High quality works without cookies! Enable cookies only if needed for private videos.",
+                            font=("Arial", 8), fg="gray", wraplength=600)
+        tips_label.pack(pady=(0, 5))
 
     def run(self):
         """Run the application"""
