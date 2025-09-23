@@ -1,2 +1,10 @@
-### 2. Tệp `requirements.txt`
-yt-dlp
+# Multi-Platform Video Downloader Requirements
+# Core video downloading library with latest features and fixes
+yt-dlp>=2024.3.10
+
+# Standard library dependencies (included with Python)
+# - tkinter (GUI framework)
+# - threading (background processing)
+# - concurrent.futures (parallel downloads)
+# - subprocess (system commands)
+# - os, time (system utilities)
