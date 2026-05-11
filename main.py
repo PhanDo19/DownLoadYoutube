@@ -42,10 +42,10 @@ class VideoDownloader:
         """Check if FFmpeg is available"""
         ffmpeg_path = os.path.join(self.ffmpeg_dir, "ffmpeg.exe")
         if os.path.exists(ffmpeg_path):
-            print(f"✅ FFmpeg found at: {self.ffmpeg_dir}")
+            print(f"[OK] FFmpeg found at: {self.ffmpeg_dir}")
             self.has_ffmpeg = True
         else:
-            print(f"⚠️ FFmpeg not found at: {ffmpeg_path}")
+            print(f"[WARN] FFmpeg not found at: {ffmpeg_path}")
             self.has_ffmpeg = False
 
     # URL Validation Methods
@@ -143,7 +143,7 @@ class VideoDownloader:
             }
             return youtube_formats.get(quality_choice, 'bestvideo+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]')
 
-    def get_download_options(self, platform, format_selector):
+    def get_download_options(self, format_selector):
         """Get platform-specific yt-dlp options"""
         base_opts = {
             'format': format_selector,
@@ -169,96 +169,68 @@ class VideoDownloader:
                 'preferedformat': 'mp4',
             }]
         
-        # Platform-specific settings
-        if platform == 'youtube':
-            # No specific client restrictions - let yt-dlp auto-select the best client
-            # This typically uses TV client which gives better quality without authentication
-            pass
-                    
         return base_opts
 
+
+    def _run_download(self, ydl_opts, url):
+        """Execute download and return filename string."""
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            title = info.get('title', 'video')
+            ext = info.get('ext', 'mp4')
+            height = info.get('height', 'unknown')
+            width = info.get('width', 'unknown')
+            requested_formats = info.get('requested_formats', [])
+            if requested_formats:
+                for rf in requested_formats:
+                    if rf.get('vcodec') != 'none':
+                        height = rf.get('height', height)
+                        width = rf.get('width', width)
+                        break
+            if height != 'unknown' and width != 'unknown':
+                print(f"[OK] Downloaded: {width}x{height}")
+            else:
+                print(f"[OK] Downloaded: {title}")
+            self.save_to_history(title, info.get('webpage_url', url))
+            return f"{title}.{ext}"
+
     # Core Download Methods
-    def download_single_video(self, url):
-        """Download a single video with error handling"""
+    def download_single_video(self, url, quality_choice=None):
+        """Download a single video with format fallback."""
         try:
             platform = self.get_platform_type(url)
-            quality_choice = self.quality_var.get()
-            
-            print(f"🎯 Downloading with quality: {quality_choice}")
-            
+            quality_choice = quality_choice or self.quality_var.get()
+            print(f"[INFO] Downloading with quality: {quality_choice}")
+
             format_selector = self.get_format_for_quality(quality_choice, platform)
-            ydl_opts = self.get_download_options(platform, format_selector)
-            
-            # Enhanced fallback strategy for better quality
             fallback_formats = [
-                format_selector,  # User's choice with bestvideo+bestaudio
-                'best[height>=720]/best[height>=480]/best',  # Prefer higher quality
-                'best'  # Final fallback
+                format_selector,
+                'best[height>=720]/best[height>=480]/best',
+                'best'
             ]
-            
+
             last_error = None
             for attempt, fmt in enumerate(fallback_formats):
                 try:
-                    ydl_opts['format'] = fmt
-                    
-                    with YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(url, download=True)
-                        title = info.get('title', 'video')
-                        ext = info.get('ext', 'mp4')
-                        
-                        # Show what we actually got
-                        height = info.get('height', 'unknown')
-                        width = info.get('width', 'unknown')
-                        
-                        # For combined formats, check requested_formats
-                        requested_formats = info.get('requested_formats', [])
-                        if requested_formats:
-                            for rf in requested_formats:
-                                if rf.get('vcodec') != 'none':
-                                    height = rf.get('height', height)
-                                    width = rf.get('width', width)
-                                    break
-                        
-                        if height != 'unknown' and width != 'unknown':
-                            print(f"✅ Successfully downloaded: {width}x{height}")
-                            if height >= 720:
-                                print("🎉 Great! High quality video downloaded!")
-                            elif height >= 480:
-                                print("👍 Good quality video downloaded!")
-                            else:
-                                print("⚠️ Lower quality, but this may be the best available for this video")
-                        else:
-                            print(f"✅ Successfully downloaded: {title}")
-                        
-                        self.save_to_history(title, info.get('webpage_url', url))
-                        return f"{title}.{ext}"
-                        
+                    return self._run_download(self.get_download_options(fmt), url)
                 except Exception as e:
                     last_error = str(e)
-                    error_str = str(e)
-                    print(f"❌ Format failed: {error_str[:100]}...")
-                    
+                    print(f"[FAIL] Attempt {attempt + 1} failed: {last_error[:120]}...")
                     if attempt < len(fallback_formats) - 1:
-                        print("🔄 Trying next format...")
                         time.sleep(1)
-                        continue
-                    else:
-                        break
-            
+
             raise RuntimeError(f"All formats failed. Last error: {last_error}")
-            
         except Exception as e:
             raise RuntimeError(f"Download failed: {str(e)}")
 
     def get_video_urls(self, url):
-        """Extract video URLs from playlists or single videos"""
+        """Extract video URLs from playlists or single videos."""
         try:
             with YoutubeDL({'quiet': True}) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if 'entries' in info:
                     return [entry['webpage_url'] for entry in info['entries']]
-                else:
-                    return [info['webpage_url']]
+                return [info['webpage_url']]
         except Exception as e:
             raise RuntimeError(f"Could not extract video URLs: {str(e)}")
 
@@ -274,25 +246,27 @@ class VideoDownloader:
             messagebox.showerror("Error", "Please enter a valid YouTube, TikTok, or Douyin URL")
             return
 
+        quality_choice = self.quality_var.get()
+
         self.disable_ui()
-        
+
         def download_worker():
             try:
                 self.update_status("Analyzing link...")
                 video_urls = self.get_video_urls(url)
-                
+
                 downloaded = []
                 skipped = []
                 failed = []
-                
+
                 for idx, v_url in enumerate(video_urls, start=1):
                     self.update_status(f"Downloading video {idx}/{len(video_urls)}...")
-                    
+
                     try:
                         if self.is_duplicate_download(v_url):
                             skipped.append(v_url)
                             continue
-                        filename = self.download_single_video(v_url)
+                        filename = self.download_single_video(v_url, quality_choice)
                         downloaded.append(filename)
                     except Exception as e:
                         failed.append(f"{v_url}: {str(e)}")
@@ -338,19 +312,20 @@ class VideoDownloader:
         use_parallel = messagebox.askyesno("Download Options", 
                                          f"Download {len(urls_to_download)} videos.\n"
                                          f"Use parallel downloads (faster but uses more bandwidth)?")
+        quality_choice = self.quality_var.get()
 
         self.disable_ui()
-        
+
         def download_worker():
             try:
                 self.total_downloads = len(urls_to_download)
                 downloaded = []
                 failed = []
-                
+
                 if use_parallel:
-                    self.download_parallel(urls_to_download, downloaded, failed)
+                    self.download_parallel(urls_to_download, downloaded, failed, quality_choice)
                 else:
-                    self.download_sequential(urls_to_download, downloaded, failed)
+                    self.download_sequential(urls_to_download, downloaded, failed, quality_choice)
 
                 self.show_download_results(downloaded, [], failed, skipped_count)
                 
@@ -361,16 +336,14 @@ class VideoDownloader:
 
         threading.Thread(target=download_worker, daemon=True).start()
 
-    def download_parallel(self, urls, downloaded, failed):
+    def download_parallel(self, urls, downloaded, failed, quality_choice):
         """Download videos in parallel"""
         max_workers = min(3, len(urls))
-        
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_url = {
-                executor.submit(self.download_single_video, url): url 
+                executor.submit(self.download_single_video, url, quality_choice): url
                 for url in urls
             }
-            
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -381,12 +354,12 @@ class VideoDownloader:
                     failed.append(f"{url}: {str(e)}")
                     self.update_status(f"Failed {len(failed)}/{len(urls)}: {url[:30]}...")
 
-    def download_sequential(self, urls, downloaded, failed):
+    def download_sequential(self, urls, downloaded, failed, quality_choice):
         """Download videos one by one"""
         for idx, url in enumerate(urls, start=1):
             self.update_status(f"Downloading video {idx}/{len(urls)}: {url[:50]}...")
             try:
-                filename = self.download_single_video(url)
+                filename = self.download_single_video(url, quality_choice)
                 downloaded.append(filename)
             except Exception as e:
                 failed.append(f"{url}: {str(e)}")
@@ -463,16 +436,13 @@ https://youtu.be/9bZkp7q19f0"""
         """Create the main GUI"""
         self.root = tk.Tk()
         self.root.title("Multi-Platform Video Downloader - YouTube, TikTok, Douyin")
-        self.root.geometry("640x480")
+        self.root.geometry("760x620")
 
         main_frame = tk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Quality selection frame
         self.create_quality_frame(main_frame)
-        
-        # Advanced options frame
-        self.create_options_frame(main_frame)
         
         # Single video download frame
         self.create_single_download_frame(main_frame)
@@ -501,11 +471,6 @@ https://youtu.be/9bZkp7q19f0"""
         tk.Label(quality_frame, text="Select quality:").pack(side=tk.LEFT, padx=5)
         for text, value in quality_options:
             tk.Radiobutton(quality_frame, text=text, variable=self.quality_var, value=value).pack(side=tk.LEFT, padx=3)
-
-    def create_options_frame(self, parent):
-        """Create advanced options frame"""
-        options_frame = tk.LabelFrame(parent, text="Advanced Options", font=("Arial", 9))
-        options_frame.pack(fill=tk.X, pady=(0, 10))
 
     def create_single_download_frame(self, parent):
         """Create single video download frame"""
@@ -556,7 +521,7 @@ https://youtu.be/9bZkp7q19f0"""
         
         # Add quality tips
         tips_label = tk.Label(parent, 
-                            text="💡 Tips: High quality works without cookies! Enable cookies only if needed for private videos.",
+                            text="Tip: If YouTube says 'Sign in to confirm you are not a bot', use browser cookies from a browser that is signed in to YouTube.",
                             font=("Arial", 8), fg="gray", wraplength=600)
         tips_label.pack(pady=(0, 5))
 

@@ -1,6 +1,6 @@
 # Multi-Platform Video Downloader Requirements
 # Core video downloading library with latest features and fixes
-yt-dlp>=2024.3.10
+yt-dlp>=2026.3.17  # Keep updated — YouTube changes frequently, old versions get blocked
 
 # Standard library dependencies (included with Python)
 # - tkinter (GUI framework)
